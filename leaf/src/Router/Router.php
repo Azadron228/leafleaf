@@ -24,8 +24,8 @@ class Router
   public function dispatch(string $method, string $path)
   {
     $route = $this->matchRoute($method, $path);
-
-    var_dump($route);
+    $route->getParams();
+    var_dump($route->getParams());
 
     if ($route) {
       foreach ($route->getMiddleware() as $middleware) {
@@ -37,5 +37,33 @@ class Router
     } else {
       echo "404 Not Found";
     }
+  
   }
+
+  function matchRoute($method, $path): Route 
+  {
+    foreach ($this->routes as $route) {
+      if ($route->getMethod() !== $method) {
+          continue;
+      }
+
+      $routePathSegments = explode('/', trim($route->getPath(), '/'));
+      $pathSegments = explode('/', trim($path, '/'));
+
+      if (count($routePathSegments) !== count($pathSegments)) {
+          continue;
+      }
+
+      $params = $route->getPathParams($route->getPath(), $path);
+
+      if ($params !== null) {
+          $route->setParams($params);
+          return $route;
+      }
+  }
+
+  return null;
+  }
+
+  
 }

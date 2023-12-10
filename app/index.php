@@ -11,7 +11,10 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $router = new Router();
 
 $router->get('/user/{id}', [HelloController::class, 'index'])->middleware(HelloMiddleware::class);
-$router->get('/loh', [HelloController::class, 'index'])->middleware([NigMiddleware::class]);
+
+$router->get('/greeting', function () {
+    echo "Hello World";
+});
 
 $router->dispatch($_SERVER['REQUEST_METHOD'], $_SERVER['REQUEST_URI']);
 
