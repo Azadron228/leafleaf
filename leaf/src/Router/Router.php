@@ -2,10 +2,26 @@
 
 namespace leaf\Router;
 
+use DI\Container;
+use DI\ContainerBuilder;
 use leaf\Router\Route;
 
 class Router
 {
+  private Container $container;
+
+  public function __construct()
+  {
+    $this->container = $this->buildContainer();
+  }
+
+  private function buildContainer(): Container
+  {
+    $builder = new ContainerBuilder();
+    $builder->addDefinitions(__DIR__ . '/config.php');
+    return $builder->build();
+  }
+
   use RouterRequestMethodsTrait;
 
   protected array $routes = [];
@@ -14,18 +30,10 @@ class Router
   protected string $path;
   protected array $middleware;
 
-  public function add($method, $path, $handler, $middleware = []): Route
-  {
-    $route = new Route($method, $path, $handler, $middleware);
-    $this->routes[] = $route;
-    return $route;
-  }
-
   public function dispatch(string $method, string $path)
   {
+    echo "dispatchEr";
     $route = $this->matchRoute($method, $path);
-    $route->getParams();
-    var_dump($route->getParams());
 
     if ($route) {
       foreach ($route->getMiddleware() as $middleware) {
@@ -33,37 +41,84 @@ class Router
         $middlewareInstance->handle();
       }
 
-      $route->executeHandler();
+      $this->invoke($route->handler, $params = []);
     } else {
       echo "404 Not Found";
     }
-  
   }
 
-  function matchRoute($method, $path): Route 
+  private function invoke($handler, $params = [])
+  {
+    if (is_callable($handler)) {
+      call_user_func_array($handler, $params);
+    } elseif (is_array($handler) !== false) {
+      list($controller, $method) = $handler;
+
+      if (!$this->container->has($controller)) {
+        trigger_error("$controller not found in the container");
+      }
+
+      $controllerInstance = $this->container->get($controller);
+
+      if (!method_exists($controllerInstance, $method)) {
+        trigger_error("$method method not found in $controller");
+      }
+
+      // Call non-static method
+      if (call_user_func_array([$controllerInstance, $method], $params) === false) {
+        // Call static method
+        if (forward_static_call_array([$controllerInstance, $method], $params) === false);
+      }
+    }
+  }
+
+  private function invvoke($handler, $params = [])
+  {
+    if (is_callable($handler)) {
+      call_user_func_array(
+        $handler,
+        $params
+      );
+    } elseif (is_array($handler) !== false) {
+      list($controller, $method) = $handler;
+
+      if (!class_exists($controller)) {
+        trigger_error("$controller not found");
+      }
+      if (!method_exists($controller, $method)) {
+        trigger_error("$method method not found in $controller");
+      }
+      // Call non Static method
+      if (call_user_func_array([new $controller(), $method], $params) === false) {
+        // Call Static method
+        if (forward_static_call_array([$controller, $method], $params) === false);
+      }
+    }
+  }
+
+  function matchRoute($method, $path): Route
   {
     foreach ($this->routes as $route) {
       if ($route->getMethod() !== $method) {
-          continue;
+        continue;
       }
 
       $routePathSegments = explode('/', trim($route->getPath(), '/'));
       $pathSegments = explode('/', trim($path, '/'));
 
       if (count($routePathSegments) !== count($pathSegments)) {
-          continue;
+        continue;
       }
 
       $params = $route->getPathParams($route->getPath(), $path);
+      echo "loh";
 
       if ($params !== null) {
-          $route->setParams($params);
-          return $route;
+        $route->setParams($params);
+        return $route;
       }
-  }
+    }
 
-  return null;
+    return null;
   }
-
-  
 }

@@ -6,6 +6,10 @@ namespace Composer\Autoload;
 
 class ComposerStaticInita94efa3c517a2c927d140544d253bee4
 {
+    public static $files = array (
+        'b33e3d135e5d9e47d845c576147bda89' => __DIR__ . '/..' . '/php-di/php-di/src/functions.php',
+    );
+
     public static $prefixLengthsPsr4 = array (
         'l' => 
         array (
@@ -25,6 +29,18 @@ class ComposerStaticInita94efa3c517a2c927d140544d253bee4
         'N' => 
         array (
             'Nyholm\\Psr7\\' => 12,
+        ),
+        'L' => 
+        array (
+            'Laravel\\SerializableClosure\\' => 28,
+        ),
+        'I' => 
+        array (
+            'Invoker\\' => 8,
+        ),
+        'D' => 
+        array (
+            'DI\\' => 3,
         ),
     );
 
@@ -58,6 +74,18 @@ class ComposerStaticInita94efa3c517a2c927d140544d253bee4
         'Nyholm\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/nyholm/psr7/src',
+        ),
+        'Laravel\\SerializableClosure\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/laravel/serializable-closure/src',
+        ),
+        'Invoker\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-di/invoker/src',
+        ),
+        'DI\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/php-di/php-di/src',
         ),
     );
 

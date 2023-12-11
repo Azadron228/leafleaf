@@ -6,9 +6,12 @@ use leaf\Router\Route;
 
 trait RouterRequestMethodsTrait
 {
-  public function delete(string $path, $handler): Route
+
+  public function add($method, $path, $handler, $middleware = []): Route
   {
-    return $this->add('DELETE', $path, $handler);
+    $route = new Route($method, $path, $handler, $middleware);
+    $this->routes[] = $route;
+    return $route;
   }
 
   public function get(string $path, $handler): Route
@@ -26,6 +29,11 @@ trait RouterRequestMethodsTrait
   {
 
     return $this->add('PUT', $path, $handler);
+  }
+
+  public function delete(string $path, $handler): Route
+  {
+    return $this->add('DELETE', $path, $handler);
   }
 
   function patch(string $path, $handler): Route
