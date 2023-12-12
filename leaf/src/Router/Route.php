@@ -54,14 +54,6 @@ class Route
     return $this->path === $path;
   }
 
-  public function getRequestQueryParams(): array
-  {
-    $queryParams = [];
-    if (isset($_SERVER['QUERY_STRING'])) {
-      parse_str($_SERVER['QUERY_STRING'], $queryParams);
-    }
-    return $queryParams;
-  }
 
   public function getPathParams($route, $path): array
   {

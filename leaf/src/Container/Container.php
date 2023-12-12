@@ -1,29 +1,41 @@
 <?php
 
+declare(strict_types=1);
+
 namespace leaf\Container;
 
 use Psr\Container\ContainerInterface;
 
 class Container implements ContainerInterface
 {
-  private $services = [];
+  protected array $data = [];
 
-  public function get($id):mixed
+  public function __construct(array $data)
   {
-    if (!$this->has($id)) {
-      throw new \Exception("Service not found: $id");
+    $this->data = $data;
+  }
+
+  public function get(string $key = null)
+  {
+    if (empty($key)) {
+      return $this->data;
     }
 
-    return $this->services[$id]();
+    if (!array_key_exists($key, $this->data)) {
+      throw new \InvalidArgumentException("'$key' is not isset");
+    }
+
+    return $this->data[$key];
   }
 
-  public function has($id): bool
+  public function set(array $data): void
   {
-    return isset($this->services[$id]);
+    $this->data = array_merge($this->data, $data);
   }
 
-  public function set($id, callable $service)
+  public function has(string $key): bool
   {
-    $this->services[$id] = $service;
+    return array_key_exists($key, $this->data);
   }
 }
+

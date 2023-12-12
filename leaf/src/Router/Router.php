@@ -2,26 +2,17 @@
 
 namespace leaf\Router;
 
-use DI\Container;
-use DI\ContainerBuilder;
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use leaf\Router\Route;
+use Nyholm\Psr7\Request as Psr7Request;
+use Nyholm\Psr7\Response as Psr7Response;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 class Router
 {
-  private Container $container;
-
-  public function __construct()
-  {
-    $this->container = $this->buildContainer();
-  }
-
-  private function buildContainer(): Container
-  {
-    $builder = new ContainerBuilder();
-    $builder->addDefinitions(__DIR__ . '/config.php');
-    return $builder->build();
-  }
-
   use RouterRequestMethodsTrait;
 
   protected array $routes = [];
@@ -30,73 +21,61 @@ class Router
   protected string $path;
   protected array $middleware;
 
-  public function dispatch(string $method, string $path)
+  function cleanPath(string $path): string
   {
-    echo "dispatchEr";
-    $route = $this->matchRoute($method, $path);
+    $cleanedPath = trim($path, '/');
+
+    $cleanedPath = strtok($cleanedPath, '?');
+
+    return trim($cleanedPath, '/');
+  }
+
+  public function dispatch(string $method, string $requestPath)
+  {
+    $route = $this->matchRoute($method, $requestPath);
+    $params = $this->handlePattern($route->getPath(), explode('/', $this->cleanPath($requestPath)));
 
     if ($route) {
-      foreach ($route->getMiddleware() as $middleware) {
-        $middlewareInstance = new $middleware();
-        $middlewareInstance->handle();
-      }
-
-      $this->invoke($route->handler, $params = []);
+      $this->callHandler($route->handler, $params);
     } else {
       echo "404 Not Found";
     }
   }
 
-  private function invoke($handler, $params = [])
+  private function callHandler($handler, $params = [])
   {
     if (is_callable($handler)) {
       call_user_func_array($handler, $params);
-    } elseif (is_array($handler) !== false) {
-      list($controller, $method) = $handler;
-
-      if (!$this->container->has($controller)) {
-        trigger_error("$controller not found in the container");
-      }
-
-      $controllerInstance = $this->container->get($controller);
-
-      if (!method_exists($controllerInstance, $method)) {
-        trigger_error("$method method not found in $controller");
-      }
-
-      // Call non-static method
-      if (call_user_func_array([$controllerInstance, $method], $params) === false) {
-        // Call static method
-        if (forward_static_call_array([$controllerInstance, $method], $params) === false);
-      }
     }
   }
 
-  private function invvoke($handler, $params = [])
+  protected function handlePattern(string $path, array $request)
   {
-    if (is_callable($handler)) {
-      call_user_func_array(
-        $handler,
-        $params
-      );
-    } elseif (is_array($handler) !== false) {
-      list($controller, $method) = $handler;
+    $params  = null;
+    $pattern = explode('/', ltrim($path, '/'));
+    $count   = count($pattern);
 
-      if (!class_exists($controller)) {
-        trigger_error("$controller not found");
+    for ($i = 0; $i < $count; $i++) {
+      if (preg_match('/{([a-zA-Z0-9_]*?)}/', $pattern[$i]) !== 0) {
+        if (array_key_exists($i, $request)) {
+          $params[] = $request[$i];
+        }
+        continue;
       }
-      if (!method_exists($controller, $method)) {
-        trigger_error("$method method not found in $controller");
-      }
-      // Call non Static method
-      if (call_user_func_array([new $controller(), $method], $params) === false) {
-        // Call Static method
-        if (forward_static_call_array([$controller, $method], $params) === false);
-      }
+    }
+
+    return $params;
+  }
+
+  public function executeMiddleware($route)
+  {
+    foreach ($route->getMiddleware() as $middleware) {
+      $middlewareInstance = new $middleware();
+      $middlewareInstance->handle();
     }
   }
 
-  function matchRoute($method, $path): Route
+  function matchRoute($method, $path): ?Route
   {
     foreach ($this->routes as $route) {
       if ($route->getMethod() !== $method) {
@@ -110,13 +89,7 @@ class Router
         continue;
       }
 
-      $params = $route->getPathParams($route->getPath(), $path);
-      echo "loh";
-
-      if ($params !== null) {
-        $route->setParams($params);
-        return $route;
-      }
+      return $route;
     }
 
     return null;
